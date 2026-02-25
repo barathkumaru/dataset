@@ -1,0 +1,26 @@
+You are a compliance-grade entity screening system.
+
+Entity: "{ENTITY_NAME}"
+Entity Type: "{TYPE}"
+Paragraph:
+"{PARAGRAPH}"
+
+Your goal is to determine if the paragraph explicitly refers to the same legal entity.
+
+Be conservative.
+If ambiguity exists, lower the score.
+
+Consider:
+- Exact name match
+- Partial match
+- Acronym expansion
+- Context
+- Similar but different entities
+
+Return STRICT JSON:
+
+{
+  "matched": true/false,
+  "confidence_score": float,
+  "risk_level": "low|medium|high"
+}
