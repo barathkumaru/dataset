@@ -1,26 +1,200 @@
-You are a compliance-grade entity screening system.
+You are a Senior Python NLP Architect.
 
-Entity: "{ENTITY_NAME}"
-Entity Type: "{TYPE}"
-Paragraph:
-"{PARAGRAPH}"
+Design a production-grade Hybrid Name Matching System for both Person Names and Company Names.
 
-Your goal is to determine if the paragraph explicitly refers to the same legal entity.
+=========================
+OBJECTIVE
+=========================
 
-Be conservative.
-If ambiguity exists, lower the score.
+Build a system that:
 
-Consider:
-- Exact name match
-- Partial match
-- Acronym expansion
-- Context
-- Similar but different entities
+1. Normalizes names (person + company)
+2. Removes prefixes and suffixes
+3. Handles middle names
+4. Matches names inside long paragraphs
+5. Uses all combinations:
+   - first
+   - last
+   - first + last
+   - first + middle
+   - middle + last
+   - full name
+6. Supports initials (e.g., A P J Abdul Kalam)
+7. Works for company names (Pvt Ltd, LLC removal)
+8. Uses hybrid architecture:
+   - Fast rule-based matcher
+   - NLP validation layer
+9. Produces confidence score (0–1)
+10. Uses threshold logic for decision
+11. Optimized for production (O(n) text scan, no nested heavy loops)
 
-Return STRICT JSON:
+=========================
+PERSON NAME REQUIREMENTS
+=========================
 
+Normalize and remove:
+
+Prefixes:
+- Mr
+- Mrs
+- Miss
+- Ms
+- Dr
+- Prof
+- Sir
+
+Suffixes:
+- Jr
+- Sr
+- II
+- III
+- PhD
+
+Handle:
+- Middle name
+- Initials
+- Extra spaces
+- Case insensitive
+- Unicode safe
+- Remove punctuation
+
+Example:
+Input: "Dr. A.P.J Abdul Kalam"
+Output:
 {
-  "matched": true/false,
-  "confidence_score": float,
-  "risk_level": "low|medium|high"
+  first: "abdul",
+  middle: "p j",
+  last: "kalam",
+  combinations: [...]
 }
+
+=========================
+COMPANY NAME REQUIREMENTS
+=========================
+
+Remove company suffixes:
+
+- Pvt Ltd
+- Private Limited
+- Ltd
+- LLC
+- LLP
+- Inc
+- Corp
+- Corporation
+- Co
+- Limited
+
+Example:
+"Infosys Private Limited"
+→ "infosys"
+
+=========================
+MATCHING REQUIREMENTS
+=========================
+
+Given:
+- Structured name
+- Paragraph text
+
+Return:
+{
+  matched: True/False,
+  score: float,
+  method: "rule" | "hybrid" | "nlp",
+  matched_phrase: "...",
+  details: {}
+}
+
+=========================
+SCORING LOGIC
+=========================
+
+Person scoring:
+- Full name match = 1.0
+- First + Last = 0.9
+- First + Middle = 0.75
+- Middle + Last = 0.75
+- First only = 0.5
+- Last only = 0.5
+- Initial-based match = 0.65
+
+Company scoring:
+- Exact match = 1.0
+- Fuzzy ratio > 90 = 0.9
+- Fuzzy ratio > 80 = 0.8
+- Token overlap > 70% = 0.75
+
+Use threshold = 0.75 (configurable)
+
+=========================
+HYBRID ARCHITECTURE
+=========================
+
+1) Rule-based matcher:
+   - Pre-compiled regex
+   - Token set match
+   - Combination match
+   - O(n) scan
+
+2) NLP validation:
+   - spaCy NER
+   - Validate PERSON or ORG entity
+   - Validate entity overlap with normalized name
+
+3) If rule score >= threshold:
+      Return result
+   Else:
+      Use NLP validation
+   Else:
+      Return no match
+
+=========================
+OPTIMIZATION REQUIREMENTS
+=========================
+
+- Precompile regex
+- Use sets instead of lists
+- Avoid nested loops
+- Lowercase once
+- Strip once
+- Cache normalized names
+- Time complexity O(n)
+- Memory optimized
+
+=========================
+PRODUCTION REQUIREMENTS
+=========================
+
+Provide:
+- Modular code structure
+- Class-based design
+- Type hints
+- Configurable threshold
+- Logging ready
+- No redundant recomputation
+- Clean separation of:
+   - Normalizer
+   - RuleMatcher
+   - NLPValidator
+   - HybridMatcher
+
+=========================
+OUTPUT FORMAT
+=========================
+
+Provide:
+
+1) Folder structure
+2) Full optimized Python code
+3) Explanation of architecture
+4) Time complexity analysis
+5) When to use only rule-based
+6) When to enable NLP
+7) How to scale for millions of paragraphs
+8) Edge case handling
+9) Unit test examples
+10) Performance improvement suggestions
+
+Do not give pseudo code.
+Give full production-grade code.
