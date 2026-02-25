@@ -1,200 +1,365 @@
-You are a Senior Python NLP Architect.
+Hybrid Name Matcher (Person + Company)
+You are a senior Python architect.
 
-Design a production-grade Hybrid Name Matching System for both Person Names and Company Names.
+Design and implement a production-grade Hybrid Name Matcher that detects whether a given person name or company name appears in a paragraph.
 
-=========================
-OBJECTIVE
-=========================
+The system must combine:
 
-Build a system that:
+Deterministic rule-based matching
 
-1. Normalizes names (person + company)
-2. Removes prefixes and suffixes
-3. Handles middle names
-4. Matches names inside long paragraphs
-5. Uses all combinations:
-   - first
-   - last
-   - first + last
-   - first + middle
-   - middle + last
-   - full name
-6. Supports initials (e.g., A P J Abdul Kalam)
-7. Works for company names (Pvt Ltd, LLC removal)
-8. Uses hybrid architecture:
-   - Fast rule-based matcher
-   - NLP validation layer
-9. Produces confidence score (0–1)
-10. Uses threshold logic for decision
-11. Optimized for production (O(n) text scan, no nested heavy loops)
+NLP-based entity validation
 
-=========================
-PERSON NAME REQUIREMENTS
-=========================
+Structured name modeling
 
-Normalize and remove:
+Confidence scoring
 
-Prefixes:
-- Mr
-- Mrs
-- Miss
-- Ms
-- Dr
-- Prof
-- Sir
+Safe input handling
 
-Suffixes:
-- Jr
-- Sr
-- II
-- III
-- PhD
+Modular clean architecture
 
-Handle:
-- Middle name
-- Initials
-- Extra spaces
-- Case insensitive
-- Unicode safe
-- Remove punctuation
+Use clean, scalable, maintainable Python code.
+
+1️⃣ Functional Requirements
+The system must expose:
+
+match_person(name: str, paragraph: str) -> MatchResult
+match_company(name: str, paragraph: str) -> MatchResult
+Where MatchResult contains:
+
+matched: bool
+
+score: float (0.0–1.0)
+
+method: str ("rule", "hybrid", "nlp", "none")
+
+matched_phrase: Optional[str]
+
+details: dict (debug metadata)
+
+2️⃣ Architecture Requirements
+Use modular design:
+
+hybrid_name_matcher/
+    normalizer.py
+    models.py
+    rule_matcher.py
+    nlp_validator.py
+    hybrid_matcher.py
+    config.py
+    main.py
+Code must follow:
+
+Single responsibility principle
+
+Configurable thresholds
+
+Clear separation of rule and NLP layers
+
+No crash on None inputs
+
+No global state
+
+3️⃣ Input Handling Requirements
+The system must:
+
+Handle None safely
+
+Handle empty strings
+
+Handle non-string inputs
+
+Never crash
+
+Always return a valid MatchResult
+
+If invalid input:
+Return matched=False with score=0.0 and reason in details.
+
+4️⃣ Normalization Requirements
+Implement robust normalization:
+
+Lowercase conversion
+
+Unicode normalization (NFKD)
+
+Accent removal
+
+Remove punctuation
+
+Collapse multiple spaces
+
+Strip leading/trailing whitespace
+
+Preserve token boundaries
+
+Safe handling of email formats
+
+Normalization must ensure:
+
+"SACHIN TENDULKÁR!!!"
+"sachin tendulkar"
+
+5️⃣ Person Name Modeling
+Create a structured PersonName model:
+
+Fields:
+
+first
+
+middle (optional)
+
+last
+
+full_name
+
+tokens
+
+Support:
+
+Middle names
+
+Initials (M.S. Dhoni)
+
+Hyphenated names (Jean-Luc Picard)
+
+Extra whitespace
+
+Case differences
+
+6️⃣ Company Name Modeling
+Create a structured CompanyName model:
+
+Fields:
+
+core_name
+
+suffix (optional)
+
+tokens
+
+Recognize and strip legal suffixes:
+
+ltd
+
+limited
+
+inc
+
+llc
+
+corp
+
+corporation
+
+pvt
+
+plc
+
+Core name must be used for matching.
 
 Example:
-Input: "Dr. A.P.J Abdul Kalam"
-Output:
-{
-  first: "abdul",
-  middle: "p j",
-  last: "kalam",
-  combinations: [...]
-}
+"Infosys Limited"
+→ core_name = "infosys"
 
-=========================
-COMPANY NAME REQUIREMENTS
-=========================
+7️⃣ Rule-Based Matching Logic
+Person Scoring
+Use hierarchical scoring:
 
-Remove company suffixes:
+Exact full name substring → 1.0
 
-- Pvt Ltd
-- Private Limited
-- Ltd
-- LLC
-- LLP
-- Inc
-- Corp
-- Corporation
-- Co
-- Limited
+First + Last both present → 0.9
 
-Example:
-"Infosys Private Limited"
-→ "infosys"
+Last name only → 0.6
 
-=========================
-MATCHING REQUIREMENTS
-=========================
+First name only → 0.4
 
-Given:
-- Structured name
-- Paragraph text
+Fuzzy similarity → dynamic (0.5–0.8)
 
+No match → 0.0
+
+Must respect token boundaries.
+
+Surname must be weighted higher than first name.
+
+Company Scoring
+Exact core name match → 1.0
+
+All core tokens present → 0.9
+
+Partial core match → 0.6
+
+Suffix-only match → 0.0
+
+No match → 0.0
+
+Do not match based on suffix alone.
+
+8️⃣ Confidence Zones
+Use 3 confidence zones:
+
+High confidence (≥ 0.85) → return immediately
+
+Medium confidence (0.5–0.85) → escalate to NLP
+
+Low confidence (< 0.5) → reject
+
+Threshold must be configurable via config.py.
+
+9️⃣ NLP Validation Layer
+Use spaCy or similar NER model.
+
+For Person:
+
+Validate in this order:
+
+Full name entity
+
+First + Last entity span
+
+Structured token overlap
+
+First name only (low weight fallback)
+
+Must confirm:
+Entity label = PERSON
+Span overlaps expected tokens
+
+Never accept first name alone if surname is absent unless strong contextual confidence.
+
+For Company:
+
+Validate:
+
+ORG entity label
+
+Span overlaps core company name
+
+Full company mention preferred
+
+Reject:
+Generic words like "company", "organization".
+
+🔟 Hybrid Decision Logic
+Final decision should combine:
+
+Rule score
+NLP score
+Confidence weighting
+
+Logic:
+
+If rule score high → accept
+If medium + NLP confirms → accept
+Else → reject
+
+Do not allow weak rule + weak NLP to pass.
+
+11️⃣ Edge Cases to Handle
+Person:
+
+Similar names (Sachin Pilot vs Sachin Tendulkar)
+
+Shared surnames
+
+Email mentions
+
+Multiple people in paragraph
+
+Accents
+
+Extra whitespace
+
+Hyphenated names
+
+Initials
+
+Company:
+
+Legal suffix variations
+
+Abbreviations
+
+Multiple companies
+
+Punctuation variations
+
+Acronyms (e.g., TCS for Tata Consultancy Services)
+
+12️⃣ Performance Requirements
+Must operate in O(n) relative to paragraph length
+
+Avoid repeated tokenization
+
+Avoid unnecessary NLP calls
+
+NLP should only trigger in medium-confidence zone
+
+Efficient for long paragraphs
+
+13️⃣ Testing Requirements
+Create comprehensive test suite covering:
+
+Positive cases
+Negative cases
+Neutral cases
+Edge cases
+Unicode cases
+None cases
+Multi-line paragraphs
+Multiple entities
+
+14️⃣ Output Expectations
 Return:
-{
-  matched: True/False,
-  score: float,
-  method: "rule" | "hybrid" | "nlp",
-  matched_phrase: "...",
-  details: {}
-}
 
-=========================
-SCORING LOGIC
-=========================
+MatchResult(
+matched=True/False,
+score=float,
+method="rule" | "hybrid" | "nlp" | "none",
+matched_phrase=str or None,
+details=dict
+)
 
-Person scoring:
-- Full name match = 1.0
-- First + Last = 0.9
-- First + Middle = 0.75
-- Middle + Last = 0.75
-- First only = 0.5
-- Last only = 0.5
-- Initial-based match = 0.65
+Include debug metadata such as:
 
-Company scoring:
-- Exact match = 1.0
-- Fuzzy ratio > 90 = 0.9
-- Fuzzy ratio > 80 = 0.8
-- Token overlap > 70% = 0.75
+rule_score
 
-Use threshold = 0.75 (configurable)
+nlp_score
 
-=========================
-HYBRID ARCHITECTURE
-=========================
+reason
 
-1) Rule-based matcher:
-   - Pre-compiled regex
-   - Token set match
-   - Combination match
-   - O(n) scan
+tokens matched
 
-2) NLP validation:
-   - spaCy NER
-   - Validate PERSON or ORG entity
-   - Validate entity overlap with normalized name
+15️⃣ Code Quality Requirements
+Type hints required
 
-3) If rule score >= threshold:
-      Return result
-   Else:
-      Use NLP validation
-   Else:
-      Return no match
+Docstrings required
 
-=========================
-OPTIMIZATION REQUIREMENTS
-=========================
+Clean naming
 
-- Precompile regex
-- Use sets instead of lists
-- Avoid nested loops
-- Lowercase once
-- Strip once
-- Cache normalized names
-- Time complexity O(n)
-- Memory optimized
+No magic numbers
 
-=========================
-PRODUCTION REQUIREMENTS
-=========================
+Config-driven thresholds
 
-Provide:
-- Modular code structure
-- Class-based design
-- Type hints
-- Configurable threshold
-- Logging ready
-- No redundant recomputation
-- Clean separation of:
-   - Normalizer
-   - RuleMatcher
-   - NLPValidator
-   - HybridMatcher
+Proper logging
 
-=========================
-OUTPUT FORMAT
-=========================
+Clear comments
 
-Provide:
+Production-ready structure
 
-1) Folder structure
-2) Full optimized Python code
-3) Explanation of architecture
-4) Time complexity analysis
-5) When to use only rule-based
-6) When to enable NLP
-7) How to scale for millions of paragraphs
-8) Edge case handling
-9) Unit test examples
-10) Performance improvement suggestions
+16️⃣ Deliverable
+Generate:
 
-Do not give pseudo code.
-Give full production-grade code.
+Complete modular Python implementation
+
+Configurable thresholds
+
+Sample main.py runner
+
+Sample test suite
+
+Clear comments explaining logic
+
+No pseudo-code
+
+Fully runnable
+
